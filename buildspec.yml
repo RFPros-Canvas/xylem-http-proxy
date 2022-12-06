@@ -4,19 +4,53 @@ phases:
     runtime-versions:
       docker: 18
       nodejs: 12
-    commands:
-      - n 16
-      - npm install --production
 
-      # move node_modules
-      - mv node_modules ./root/node_modules
-      - npm install
-  build:
+  pre_build:
     commands:
       - npm test
 
+  build:
+    commands:
+      - echo Logging in to Docker Hub...
+      - echo $DockerPassword | docker login --username $DockerUsername --password-stdin
+
+      - echo Build started on `date`
+      - echo Building the Docker image...
+      - docker build -t $ContainerName:latest --build-arg Environment .
+      - docker tag $ContainerName:latest $EcrRepositoryUri:latest
+      - echo Build completed on `date`
+
+      - cd health-check-root
+      - n 16
+      - npm install --production
+      - docker build -t $HealthCheckContainerName:latest --build-arg Environment .
+      - docker tag $HealthCheckContainerName:latest $EcrRepositoryHealthCheckUri:latest
+      - cd ..
+
+  post_build:
+    commands:
+      - echo Logging in to Amazon ECR...
+      - aws ecr get-login-password --region $AWS_REGION | docker login --username AWS  --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
+      - echo Pushing the Docker image...
+      - docker push $EcrRepositoryUri:latest
+      - docker push $EcrRepositoryHealthCheckUri:latest
+
+      - echo Writing image definitions file...
+      - printf '[{"name":"%s","imageUri":"%s"}, {"name":"%s","imageUri":"%s"}]' $ContainerName $EcrRepositoryUri:latest $HealthCheckContainerName $EcrRepositoryHealthCheckUri:latest > imagedefinitions.json
+
+# artifacts:
+#   type: zip
+#   base-directory: root
+#   files:
+#     - "**/*"
+
 artifacts:
-  type: zip
-  base-directory: root
   files:
     - "**/*"
+  secondary-artifacts:
+    ContainerBuildArtifact:
+      files: imagedefinitions.json
+    ApiBuildArtifact:
+      files:
+        - "**/*"
+      base-directory: root

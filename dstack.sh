@@ -24,17 +24,6 @@ echo $S3ARTIFACTS
 # upload the artifacts to the s3 bucket
 aws s3 sync ./cfnResources "s3://$S3ARTIFACTS/cloudformation" --profile $PROFILE
 
-# # zip lambda layers for upload
-# # This doesn't have to happen everytime, only when the required libraries in the layer change
-# cd layers/aws-sdk-v3/nodejs
-# rm -rf node_modules
-# npm install --production
-# cd ..
-# rm -rf *.zip
-# zip -r nodejs.zip nodejs
-# cd ../..
-aws s3 sync ./layers "s3://$S3ARTIFACTS/layers" --profile $PROFILE --exclude "*" --include "*.zip"
-
 if [ "$ENV" = "prod" ]; then
   CONNARN="arn:aws:codestar-connections:us-east-1:524206654849:connection/61b1397d-2aca-403d-b033-571152f9c973"
 else

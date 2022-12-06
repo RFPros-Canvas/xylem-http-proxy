@@ -28,8 +28,6 @@ Parameters:
     Type: String
   KMSKeyArn:
     Type: String
-  OutpostBucketName:
-    Type: String
   PipeLineRoleArn:
     Type: String
   ResourceGroup:
@@ -57,7 +55,7 @@ Resources:
           - Name: AWS_ACCOUNT_ID
             Value: !Ref AWS::AccountId
           - Name: ContainerName
-            Value: file-service-proxy
+            Value: http-service-proxy
           - Name: DockerUsername
             Type: PARAMETER_STORE
             Value: !Sub /${Stack}-${Environment}/dockerhub/username
@@ -91,7 +89,7 @@ Resources:
                 FullRepositoryId: !Ref FullRepositoryId # some-user/my-repo
                 BranchName: !Sub ${Environment}
               OutputArtifacts:
-                - Name: ApiSourceArtifact
+                - Name: ProxySourceArtifact
               RunOrder: 1
 
         - Name: BuildApis
@@ -106,7 +104,7 @@ Resources:
                 ProjectName: !Ref CodeBuildProject
               RunOrder: 1
               InputArtifacts:
-                - Name: ApiSourceArtifact
+                - Name: ProxySourceArtifact
               OutputArtifacts:
                 - Name: ContainerBuildArtifact
         - Name: Approval

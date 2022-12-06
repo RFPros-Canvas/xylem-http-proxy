@@ -7,18 +7,7 @@ Parameters:
     Type: String
   ContainerName:
     Type: String
-    Default: file-service-proxy
-  OutpostBucketName:
-    Type: String
-
-  PublicSubnets:
-    Type: CommaDelimitedList
-  PublicHttpsSecurityGroup:
-    Type: String
-  TargetGroupArn:
-    Type: String
-  VpcId:
-    Type: String
+    Default: http-service-proxy
 
 Resources:
   SecurityGroup:
@@ -27,7 +16,7 @@ Resources:
       GroupDescription: Security Group for Service
       GroupName: !Sub ${ApplicationName}-${Environment}-sg
       SecurityGroupIngress:
-        - SourceSecurityGroupId: !Ref PublicHttpsSecurityGroup
+        - CidrIp: "0.0.0.0/0"
           FromPort: 8080
           ToPort: 8080
           IpProtocol: tcp
@@ -40,7 +29,8 @@ Resources:
       Tags:
         - Key: ResourceGroup
           Value: !Ref ApplicationName
-      VpcId: !Ref VpcId
+      VpcId:
+        Fn::ImportValue: !Sub canvas-coap-proxy-${Environment}-VpcId
 
   LogGroup:
     Type: AWS::Logs::LogGroup
@@ -77,7 +67,7 @@ Resources:
     DependsOn:
       - SecurityGroup
       - Task
-      # - Cluster
+      - ServiceDiscovery
     Properties:
       ServiceName: !Sub ${ApplicationName}-${Environment}-service
       Cluster: 
@@ -87,25 +77,29 @@ Resources:
       LaunchType: FARGATE
       NetworkConfiguration:
         AwsvpcConfiguration:
-          AssignPublicIp: ENABLED
+          AssignPublicIp: DISABLED
           SecurityGroups:
             - !Ref SecurityGroup
-          Subnets: !Ref PublicSubnets
+          Subnets:
+            - Fn::ImportValue: !Sub canvas-coap-proxy-${Environment}-PrivateSubnet1
 
       TaskDefinition: !Ref Task
-      # LoadBalancers:
-      #   - ContainerName: !Ref ContainerName
-      #     ContainerPort: 8080
-      #     TargetGroupArn: !Ref TargetGroupArn
       ServiceConnectConfiguration:
         Enabled: true
-        Namespace: myNameSpace
+        Namespace: http-proxy
         Services: 
           - ClientAliases: 
-            - ServiceConnectClientAlias
-          DiscoveryName: !Sub ${ApplicationName}-${Environment}-discovery-name
-          PortName: service-port
+            - Port: 8080
+            DiscoveryName: service
+            PortName: service-port
 
+  ServiceDiscovery:
+    Type: AWS::ServiceDiscovery::PrivateDnsNamespace
+    Properties: 
+      Description: Service Discovery Namespace
+      Name: http-proxy
+      Vpc:
+        Fn::ImportValue: !Sub canvas-coap-proxy-${Environment}-VpcId
 
   Task:
     Type: AWS::ECS::TaskDefinition
@@ -122,8 +116,6 @@ Resources:
           Environment:
             - Name: Environment
               Value: !Ref Environment
-            - Name: OutpostBucketName
-              Value: !Ref OutpostBucketName
             - Name: AWSRegion
               Value: !Ref AWS::Region
             - Name: AWSAccountId
@@ -170,13 +162,6 @@ Resources:
             Statement:
               - Effect: Allow
                 Action:
-                  - s3:*
-                Resource:
-                  - !Sub "arn:aws:s3:::${OutpostBucketName}"
-                  - !Sub "arn:aws:s3:::${OutpostBucketName}/*"
-              - Sid: VisualEditor0
-                Effect: Allow
-                Action:
                   - logs:CreateLogGroup
                 Resource: "*"
               - Effect: Allow
@@ -184,7 +169,7 @@ Resources:
                   - logs:CreateLogStream
                   - logs:PutLogEvents
                 Resource:
-                  - arn:aws:logs:*:*:log-group:/aws/lambda/*
+                  - arn:aws:logs:*:*:log-group:/aws/ecs/*
               - Effect: Allow
                 Action:
                   - iot:Publish
@@ -246,10 +231,10 @@ Resources:
                 Resource: "*"
 
 Outputs:
-  ServiceName:
-    Value: !GetAtt Service.Name
-    Export:
-      Name: !Sub ${ApplicationName}-${Environment}-ServiceName
+  # ServiceName:
+  #   Value: !GetAtt Service.Name
+  #   Export:
+  #     Name: !Sub ${ApplicationName}-${Environment}-ServiceName
   EcrRepositoryUri:
     Value: !GetAtt Repository.RepositoryUri
     Export:
