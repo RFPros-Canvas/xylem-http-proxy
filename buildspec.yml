@@ -20,23 +20,15 @@ phases:
       - docker tag $ContainerName:latest $EcrRepositoryUri:latest
       - echo Build completed on `date`
 
-      - cd health-check-root
-      - n 16
-      - npm install --production
-      - docker build -t $HealthCheckContainerName:latest --build-arg Environment .
-      - docker tag $HealthCheckContainerName:latest $EcrRepositoryHealthCheckUri:latest
-      - cd ..
-
   post_build:
     commands:
       - echo Logging in to Amazon ECR...
       - aws ecr get-login-password --region $AWS_REGION | docker login --username AWS  --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
       - echo Pushing the Docker image...
       - docker push $EcrRepositoryUri:latest
-      - docker push $EcrRepositoryHealthCheckUri:latest
 
       - echo Writing image definitions file...
-      - printf '[{"name":"%s","imageUri":"%s"}, {"name":"%s","imageUri":"%s"}]' $ContainerName $EcrRepositoryUri:latest $HealthCheckContainerName $EcrRepositoryHealthCheckUri:latest > imagedefinitions.json
+      - printf '[{"name":"%s","imageUri":"%s"}]' $ContainerName $EcrRepositoryUri:latest > imagedefinitions.json
 
 # artifacts:
 #   type: zip

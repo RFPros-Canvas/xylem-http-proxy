@@ -34,6 +34,8 @@ Parameters:
     Type: String
   Stack:
     Type: String
+  EcrRepositoryUri:
+    Type: String
 
 Resources:
   CodeBuildProject:
@@ -52,6 +54,8 @@ Resources:
         EnvironmentVariables:
           - Name: Environment
             Value: !Ref Environment
+          - Name: EcrRepositoryUri
+            Value: !Ref EcrRepositoryUri
           - Name: AWS_ACCOUNT_ID
             Value: !Ref AWS::AccountId
           - Name: ContainerName

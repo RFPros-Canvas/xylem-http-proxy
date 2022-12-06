@@ -231,10 +231,10 @@ Resources:
                 Resource: "*"
 
 Outputs:
-  # ServiceName:
-  #   Value: !GetAtt Service.Name
-  #   Export:
-  #     Name: !Sub ${ApplicationName}-${Environment}-ServiceName
+  ServiceName:
+    Value: !GetAtt Service.Name
+    Export:
+      Name: !Sub ${ApplicationName}-${Environment}-ServiceName
   EcrRepositoryUri:
     Value: !GetAtt Repository.RepositoryUri
     Export:

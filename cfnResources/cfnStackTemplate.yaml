@@ -46,6 +46,8 @@ Resources:
           Fn::ImportValue: !Sub canvas-coap-proxy-${Environment}-CodePipelineRoleArn
         ResourceGroup: !Sub ${Stack}-${Environment}
         Stack: !Ref Stack
+        EcrRepositoryUri:
+          Fn::GetAtt: [EcsServiceStack, Outputs.EcrRepositoryUri]
 
       Tags:
         - Key: ResourceGroup
