@@ -17,7 +17,7 @@ echo "Fetched ACCOUNT: $ACCOUNT"
 
 # Define S3 Buckets
 ACCOUNTPREFIX=$(echo "$ACCOUNT" | cut -c1-4)
-S3ARTIFACTS="$ACCOUNTPREFIX-$APPLICATIONNAME-artifacts-$ENV"
+S3ARTIFACTS="$ACCOUNTPREFIX-canvas-coap-proxy-artifacts-$ENV"
 
 echo $S3ARTIFACTS
 

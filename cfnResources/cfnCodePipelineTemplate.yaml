@@ -58,10 +58,10 @@ Resources:
             Value: http-service-proxy
           - Name: DockerUsername
             Type: PARAMETER_STORE
-            Value: !Sub /${Stack}-${Environment}/dockerhub/username
+            Value: !Sub /canvas-${Environment}/dockerhub/username
           - Name: DockerPassword
             Type: PARAMETER_STORE
-            Value: !Sub /${Stack}-${Environment}/dockerhub/password
+            Value: !Sub /canvas-${Environment}/dockerhub/password
       Source:
         BuildSpec: !Ref BuildSpecPath
         Type: CODEPIPELINE
