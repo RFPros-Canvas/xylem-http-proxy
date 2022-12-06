@@ -42,11 +42,6 @@ Resources:
           Value: !Ref ApplicationName
       VpcId: !Ref VpcId
 
-  # Cluster:
-  #   Type: AWS::ECS::Cluster
-  #   Properties:
-  #     ClusterName: !Sub ${ApplicationName}-${Environment}
-
   LogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
@@ -103,10 +98,8 @@ Resources:
       #     ContainerPort: 8080
       #     TargetGroupArn: !Ref TargetGroupArn
       ServiceConnectConfiguration:
-        Enabled: Boolean
-        LogConfiguration: 
-          LogConfiguration
-        Namespace: String
+        Enabled: true
+        Namespace: myNameSpace
         Services: 
           - ClientAliases: 
             - ServiceConnectClientAlias
@@ -194,7 +187,7 @@ Resources:
                   - arn:aws:logs:*:*:log-group:/aws/lambda/*
               - Effect: Allow
                 Action:
-                  - lambda:InvokeFunction
+                  - iot:Publish
                 Resource: "*"
 
   # This is an IAM role which authorizes ECS to manage resources on your
@@ -253,10 +246,6 @@ Resources:
                 Resource: "*"
 
 Outputs:
-  ClusterName:
-    Value: !Ref Cluster
-    Export:
-      Name: !Sub ${ApplicationName}-${Environment}-ClusterName
   ServiceName:
     Value: !GetAtt Service.Name
     Export:

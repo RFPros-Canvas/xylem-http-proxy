@@ -34,8 +34,6 @@ Parameters:
     Type: String
   ResourceGroup:
     Type: String
-  SdkLayerArn:
-    Type: String
   Stack:
     Type: String
 
@@ -91,7 +89,7 @@ Resources:
               Configuration:
                 ConnectionArn: !Ref ConnectionArn
                 FullRepositoryId: !Ref FullRepositoryId # some-user/my-repo
-                BranchName: !Sub CFS-${Environment}
+                BranchName: !Sub ${Environment}
               OutputArtifacts:
                 - Name: ApiSourceArtifact
               RunOrder: 1
@@ -110,7 +108,7 @@ Resources:
               InputArtifacts:
                 - Name: ApiSourceArtifact
               OutputArtifacts:
-                - Name: ApiBuildArtifact
+                - Name: ContainerBuildArtifact
         - Name: Approval
           Actions:
             - Name: ApproveDeploy
@@ -121,29 +119,22 @@ Resources:
                 Provider: Manual
         - Name: Deploy
           Actions:
-            - Name: DeployApi
+            - Name: DeployTask
+              InputArtifacts:
+                - Name: ContainerBuildArtifact
               ActionTypeId:
                 Category: Deploy
                 Owner: AWS
                 Version: 1
-                Provider: CloudFormation
-              RunOrder: 1
-              InputArtifacts:
-                - Name: ApiBuildArtifact
+                Provider: ECS
               Configuration:
-                ActionMode: CREATE_UPDATE
-                Capabilities: CAPABILITY_IAM,CAPABILITY_AUTO_EXPAND,CAPABILITY_NAMED_IAM
-                RoleArn: !Ref CloudFormationDeploymentRoleArn
-                StackName: !Sub CICD-${ApplicationName}-${Environment}
-                TemplatePath: !Sub ApiBuildArtifact::${CfnTemplatePath}
-                ParameterOverrides: !Sub |
-                  {"BucketName":{"Fn::GetArtifactAtt":["ApiBuildArtifact","BucketName"]},
-                  "ObjectKey":{"Fn::GetArtifactAtt":["ApiBuildArtifact","ObjectKey"]},
-                  "Environment":"${Environment}",
-                  "OutpostBucketName":"${OutpostBucketName}",
-                  "ApplicationName":"${ApplicationName}",
-                  "SdkLayerArn":"${SdkLayerArn}",
-                  "Stack":"${Stack}"}
+                ClusterName:
+                  Fn::ImportValue: !Sub canvas-coap-proxy-${Environment}-ClusterName
+                ServiceName:
+                  Fn::ImportValue: !Sub canvas-coap-proxy-${Environment}-ServiceName
+                FileName: "imagedefinitions.json"
+              RunOrder: 2
+
       ArtifactStore:
         Type: S3
         Location: !Ref ArtifactBucketName

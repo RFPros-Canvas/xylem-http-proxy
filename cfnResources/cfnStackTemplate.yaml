@@ -54,8 +54,6 @@ Resources:
         PipeLineRoleArn:
           Fn::ImportValue: !Sub canvas-coap-proxy-${Environment}-CodePipelineRoleArn
         ResourceGroup: !Sub ${Stack}-${Environment}
-        SdkLayerArn:
-          Fn::ImportValue: !Sub ${Stack}-common-${Environment}-SdkLambdaLayerArn
         Stack: !Ref Stack
 
       Tags:
@@ -63,3 +61,5 @@ Resources:
           Value: !Sub ${Stack}-${Environment}
       TemplateURL: !Sub https://${ArtifactBucketName}.s3.amazonaws.com/cloudformation/cfnCodePipelineTemplate.yaml
       TimeoutInMinutes: 5
+
+  # EcsService

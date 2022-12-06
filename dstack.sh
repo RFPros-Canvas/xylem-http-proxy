@@ -19,6 +19,8 @@ echo "Fetched ACCOUNT: $ACCOUNT"
 ACCOUNTPREFIX=$(echo "$ACCOUNT" | cut -c1-4)
 S3ARTIFACTS="$ACCOUNTPREFIX-$APPLICATIONNAME-artifacts-$ENV"
 
+echo $S3ARTIFACTS
+
 # upload the artifacts to the s3 bucket
 aws s3 sync ./cfnResources "s3://$S3ARTIFACTS/cloudformation" --profile $PROFILE
 
