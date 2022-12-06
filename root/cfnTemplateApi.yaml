@@ -1,0 +1,100 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: CoAP Proxy API
+Parameters:
+  ApplicationName:
+    Type: String
+  BucketName:
+    Type: String
+  Environment:
+    Type: String
+  DataFunctionArn:
+    Type: String
+  ServerlessApiType:
+    Type: String
+  VpcId:
+    Type: String
+    Default: none
+  Stack:
+    Type: String
+
+Conditions:
+  IsPrivate: !Equals [!Ref ServerlessApiType, PRIVATE]
+  IsPublic: !Equals [!Ref ServerlessApiType, EDGE]
+
+Resources:
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub ${ApplicationName}-${Environment}-lambda-execution-role
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+                - apigateway.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Path: !Sub /${ApplicationName}/
+      Policies:
+        - PolicyName: LambdaExecutionRole
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - lambda:ListVersionsByFunction
+                Resource: "*"
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: !Sub /aws/lambda/${DataFunction}/*
+              - Effect: Allow
+                Action: logs:CreateLogGroup
+                Resource: !Sub /aws/lambda/${DataFunction}
+              - Effect: Allow
+                Action: iot:Publish
+                Resource:
+                  - arn:aws:iot:us-east-1:*:topic/optimyze/gateway/laird/+
+                  - arn:aws:iot:us-east-1:*:topic/things/+/shadow
+                  # - arn:aws:iot:us-east-1:*:topic/optimyze/gateway/laird/+/gettime
+                  # - arn:aws:iot:us-east-1:*:topic/optimyze/gateway/laird/+/memfault/chunk
+
+  # Lambda Functions
+  DataFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Join ["_", ["DataFunction", !Ref Environment]]
+      Code:
+        S3Bucket: !Ref BucketName
+        S3Key: !Ref ObjectKey
+      Handler: lambdas/data.handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Runtime: nodejs16.x
+      Timeout: 30
+      Layers:
+        - !Ref SdkLayerArn
+      Environment:
+        Variables:
+          Environment: !Ref Environment
+
+  DataFunctionLogGroup:
+    Type: AWS::Logs::LogGroup
+    DependsOn: "DataFunction"
+    Properties:
+      LogGroupName: !Join ["", ["/aws/lambda/", !Ref DataFunction]]
+
+
+  # # /data
+  # # - - Permission
+  # InvokePublishTelemetryFunctionPermission:
+  #   Type: AWS::Lambda::Permission
+  #   Properties:
+  #     FunctionName: !Select ["6", !Split [":", !Ref DataFunctionArn]]
+  #     Action: lambda:InvokeFunction
+  #     Principal: apigateway.amazonaws.com
+  #     SourceArn:
+  #       Fn::Sub: arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ServerlessApi}/*/*/telemetry

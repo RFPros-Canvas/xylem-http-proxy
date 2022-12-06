@@ -1,0 +1,22 @@
+version: 0.2
+phases:
+  install:
+    runtime-versions:
+      docker: 18
+      nodejs: 12
+    commands:
+      - n 16
+      - npm install --production
+
+      # move node_modules
+      - mv node_modules ./root/node_modules
+      - npm install
+  build:
+    commands:
+      - npm test
+
+artifacts:
+  type: zip
+  base-directory: root
+  files:
+    - "**/*"

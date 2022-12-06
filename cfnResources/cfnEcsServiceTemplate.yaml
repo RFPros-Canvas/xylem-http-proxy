@@ -1,0 +1,267 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Parameters:
+  ApplicationName:
+    Type: String
+  Environment:
+    Type: String
+  ContainerName:
+    Type: String
+    Default: file-service-proxy
+  OutpostBucketName:
+    Type: String
+
+  PublicSubnets:
+    Type: CommaDelimitedList
+  PublicHttpsSecurityGroup:
+    Type: String
+  TargetGroupArn:
+    Type: String
+  VpcId:
+    Type: String
+
+Resources:
+  SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security Group for Service
+      GroupName: !Sub ${ApplicationName}-${Environment}-sg
+      SecurityGroupIngress:
+        - SourceSecurityGroupId: !Ref PublicHttpsSecurityGroup
+          FromPort: 8080
+          ToPort: 8080
+          IpProtocol: tcp
+      SecurityGroupEgress:
+        - CidrIp: "0.0.0.0/0"
+          Description: Open HTTPS Outbound so ECR is reachable
+          FromPort: 443
+          ToPort: 443
+          IpProtocol: tcp
+      Tags:
+        - Key: ResourceGroup
+          Value: !Ref ApplicationName
+      VpcId: !Ref VpcId
+
+  # Cluster:
+  #   Type: AWS::ECS::Cluster
+  #   Properties:
+  #     ClusterName: !Sub ${ApplicationName}-${Environment}
+
+  LogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /ecs/${ApplicationName}-${Environment}-service
+      RetentionInDays: 7
+
+  Repository:
+    Type: AWS::ECR::Repository
+    Properties:
+      LifecyclePolicy:
+        LifecyclePolicyText: |
+          {
+            "rules": [{
+              "rulePriority": 1,
+              "description": "Expire untagged images",
+              "selection": {
+                "tagStatus": "untagged",
+                "countType": "imageCountMoreThan",
+                "countNumber": 1
+              },
+              "action": {
+                "type": "expire"
+              }
+            }]
+          }
+      RepositoryName: !Sub ${ApplicationName}-${Environment}
+      Tags:
+        - Key: ResourceGroup
+          Value: !Ref ApplicationName
+
+  Service:
+    Type: AWS::ECS::Service
+    DependsOn:
+      - SecurityGroup
+      - Task
+      # - Cluster
+    Properties:
+      ServiceName: !Sub ${ApplicationName}-${Environment}-service
+      Cluster: 
+        Fn::ImportValue: !Sub canvas-coap-proxy-${Environment}-ClusterArn
+      # DeploymentConfiguration:
+      DesiredCount: 0
+      LaunchType: FARGATE
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: ENABLED
+          SecurityGroups:
+            - !Ref SecurityGroup
+          Subnets: !Ref PublicSubnets
+
+      TaskDefinition: !Ref Task
+      # LoadBalancers:
+      #   - ContainerName: !Ref ContainerName
+      #     ContainerPort: 8080
+      #     TargetGroupArn: !Ref TargetGroupArn
+      ServiceConnectConfiguration:
+        Enabled: Boolean
+        LogConfiguration: 
+          LogConfiguration
+        Namespace: String
+        Services: 
+          - ClientAliases: 
+            - ServiceConnectClientAlias
+          DiscoveryName: !Sub ${ApplicationName}-${Environment}-discovery-name
+          PortName: service-port
+
+
+  Task:
+    Type: AWS::ECS::TaskDefinition
+    DependsOn:
+      - ECSRole
+      - ServiceTaskRole
+    Properties:
+      ContainerDefinitions:
+        - Image: !Sub ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${Repository}:latest
+          Cpu: 0
+          MemoryReservation: 1024
+          Name: !Ref ContainerName
+          Essential: true
+          Environment:
+            - Name: Environment
+              Value: !Ref Environment
+            - Name: OutpostBucketName
+              Value: !Ref OutpostBucketName
+            - Name: AWSRegion
+              Value: !Ref AWS::Region
+            - Name: AWSAccountId
+              Value: !Ref AWS::AccountId
+          PortMappings:
+            - ContainerPort: 8080
+              HostPort: 8080
+              Protocol: tcp
+              Name: service-port
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Sub /ecs/${ApplicationName}-${Environment}-service
+              awslogs-region: !Ref AWS::Region
+              awslogs-stream-prefix: ecs
+      Cpu: 512
+      ExecutionRoleArn: !GetAtt ECSRole.Arn
+      Family: !Sub ${ApplicationName}-${Environment}
+      Memory: 1024
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+        - FARGATE
+      TaskRoleArn: !GetAtt ServiceTaskRole.Arn
+
+  ServiceTaskRole:
+    Type: AWS::IAM::Role
+    Properties:
+      ## Assumed Role ecs-tasks.amazonaws.com
+      RoleName: !Sub ${ApplicationName}-${Environment}-ecsTask-role
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - ecs-tasks.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Path: !Sub /${ApplicationName}/
+      Policies:
+        - PolicyName: ServiceTaskPolicy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:*
+                Resource:
+                  - !Sub "arn:aws:s3:::${OutpostBucketName}"
+                  - !Sub "arn:aws:s3:::${OutpostBucketName}/*"
+              - Sid: VisualEditor0
+                Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                Resource: "*"
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource:
+                  - arn:aws:logs:*:*:log-group:/aws/lambda/*
+              - Effect: Allow
+                Action:
+                  - lambda:InvokeFunction
+                Resource: "*"
+
+  # This is an IAM role which authorizes ECS to manage resources on your
+  # account on your behalf, such as updating your load balancer with the
+  # details of where your containers are, so that traffic can reach your
+  # containers.
+  ECSRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub ${ApplicationName}-${Environment}-ecs-role
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - ecs-tasks.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Path: /
+      # arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
+      Policies:
+        - PolicyName: ecs-service
+          PolicyDocument:
+            Statement:
+              - Effect: Allow
+                Action:
+                  # Rules which allow ECS to attach network interfaces to instances
+                  # on your behalf in order for awsvpc networking mode to work right
+                  - "ec2:AttachNetworkInterface"
+                  - "ec2:CreateNetworkInterface"
+                  - "ec2:CreateNetworkInterfacePermission"
+                  - "ec2:DeleteNetworkInterface"
+                  - "ec2:DeleteNetworkInterfacePermission"
+                  - "ec2:Describe*"
+                  - "ec2:DetachNetworkInterface"
+
+                  # Rules which allow ECS to update load balancers on your behalf
+                  # with the information sabout how to send traffic to your containers
+                  - "elasticloadbalancing:DeregisterInstancesFromLoadBalancer"
+                  - "elasticloadbalancing:DeregisterTargets"
+                  - "elasticloadbalancing:Describe*"
+                  - "elasticloadbalancing:RegisterInstancesWithLoadBalancer"
+                  - "elasticloadbalancing:RegisterTargets"
+                  - "ecs:*"
+                  - ecr:GetAuthorizationToken
+                  - ecr:BatchCheckLayerAvailability
+                  - ecr:GetDownloadUrlForLayer
+                  - ecr:GetRepositoryPolicy
+                  - ecr:DescribeRepositories
+                  - ecr:ListImages
+                  - ecr:DescribeImages
+                  - ecr:BatchGetImage
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                  - logs:CreateLogGroup
+                Resource: "*"
+
+Outputs:
+  ClusterName:
+    Value: !Ref Cluster
+    Export:
+      Name: !Sub ${ApplicationName}-${Environment}-ClusterName
+  ServiceName:
+    Value: !GetAtt Service.Name
+    Export:
+      Name: !Sub ${ApplicationName}-${Environment}-ServiceName
+  EcrRepositoryUri:
+    Value: !GetAtt Repository.RepositoryUri
+    Export:
+      Name: !Sub ${ApplicationName}-${Environment}-EcrRepositoryUri
