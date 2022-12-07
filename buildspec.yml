@@ -12,7 +12,7 @@ phases:
       - mv node_modules ./root/node_modules
 
       # copy files from FileServiceSourceArtifact
-      - cp -R $CODEBUILD_SRC_DIR_ProxySourceArtifact/root/. ./root/
+      # - cp -R $CODEBUILD_SRC_DIR_ProxySourceArtifact/root/. ./root/
 
   pre_build:
     commands:
