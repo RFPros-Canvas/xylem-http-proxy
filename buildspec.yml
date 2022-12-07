@@ -4,16 +4,25 @@ phases:
     runtime-versions:
       docker: 18
       nodejs: 12
+    commands:
+      - n 16
+      - npm install --production
+
+      # move node_modules
+      - mv node_modules ./root/node_modules
+
+      # copy files from FileServiceSourceArtifact
+      - cp -R $CODEBUILD_SRC_DIR_ProxySourceArtifact/root/. ./root/
 
   pre_build:
     commands:
-      - npm test
-
-  build:
-    commands:
+      - ls root
       - echo Logging in to Docker Hub...
       - echo $DockerPassword | docker login --username $DockerUsername --password-stdin
 
+  build:
+    commands:
+      # - npm test
       - echo Build started on `date`
       - echo Building the Docker image...
       - docker build -t $ContainerName:latest --build-arg Environment .
@@ -26,7 +35,6 @@ phases:
       - aws ecr get-login-password --region $AWS_REGION | docker login --username AWS  --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
       - echo Pushing the Docker image...
       - docker push $EcrRepositoryUri:latest
-
       - echo Writing image definitions file...
       - printf '[{"name":"%s","imageUri":"%s"}]' $ContainerName $EcrRepositoryUri:latest > imagedefinitions.json
 

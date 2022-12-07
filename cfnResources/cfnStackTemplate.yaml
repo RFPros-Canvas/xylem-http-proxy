@@ -38,6 +38,7 @@ Resources:
         CodeBuildProjectRoleArn:
           Fn::ImportValue: !Sub canvas-coap-proxy-${Environment}-CodeBuildProjectRoleArn
         ConnectionArn: !Ref ConnectionArn
+        ContainerName: http-service-proxy
         Environment: !Ref Environment
         FullRepositoryId: !Sub ${GitOrg}/${ApplicationName}
         KMSKeyArn:
@@ -48,6 +49,10 @@ Resources:
         Stack: !Ref Stack
         EcrRepositoryUri:
           Fn::GetAtt: [EcsServiceStack, Outputs.EcrRepositoryUri]
+
+        ClusterName:
+          Fn::ImportValue: !Sub canvas-coap-proxy-${Environment}-ClusterName
+
 
       Tags:
         - Key: ResourceGroup
@@ -60,7 +65,14 @@ Resources:
     Properties:
       Parameters:
         ApplicationName: !Ref ApplicationName
+        ClusterArn:
+          Fn::ImportValue: !Sub canvas-coap-proxy-${Environment}-ClusterArn
+        ClusterVpcId:
+          Fn::ImportValue: !Sub canvas-coap-proxy-${Environment}-VpcId
+        ContainerName: http-service-proxy
         Environment: !Ref Environment
+        Subnet:
+          Fn::ImportValue: !Sub canvas-coap-proxy-${Environment}-PrivateSubnet1
 
       Tags:
         - Key: ResourceGroup

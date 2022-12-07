@@ -18,9 +18,13 @@ Parameters:
     Default: cfnTemplate.yaml
   CloudFormationDeploymentRoleArn:
     Type: String
+  ClusterName:
+    Type: String
   CodeBuildProjectRoleArn:
     Type: String
   ConnectionArn:
+    Type: String
+  ContainerName:
     Type: String
   Environment:
     Type: String
@@ -59,7 +63,7 @@ Resources:
           - Name: AWS_ACCOUNT_ID
             Value: !Ref AWS::AccountId
           - Name: ContainerName
-            Value: http-service-proxy
+            Value: !Ref ContainerName
           - Name: DockerUsername
             Type: PARAMETER_STORE
             Value: !Sub /canvas-${Environment}/dockerhub/username
@@ -130,10 +134,8 @@ Resources:
                 Version: 1
                 Provider: ECS
               Configuration:
-                ClusterName:
-                  Fn::ImportValue: !Sub canvas-coap-proxy-${Environment}-ClusterName
-                ServiceName:
-                  Fn::ImportValue: !Sub canvas-coap-proxy-${Environment}-ServiceName
+                ClusterName: !Ref ClusterName
+                ServiceName: !Sub ${ApplicationName}-${Environment}-ServiceName
                 FileName: "imagedefinitions.json"
               RunOrder: 2
 

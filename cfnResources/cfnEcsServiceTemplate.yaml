@@ -5,9 +5,14 @@ Parameters:
     Type: String
   Environment:
     Type: String
+  ClusterArn:
+    Type: String
+  ClusterVpcId:
+    Type: String
   ContainerName:
     Type: String
-    Default: http-service-proxy
+  Subnet:
+    Type: String
 
 Resources:
   SecurityGroup:
@@ -29,8 +34,7 @@ Resources:
       Tags:
         - Key: ResourceGroup
           Value: !Ref ApplicationName
-      VpcId:
-        Fn::ImportValue: !Sub canvas-coap-proxy-${Environment}-VpcId
+      VpcId: !Ref ClusterVpcId
 
   LogGroup:
     Type: AWS::Logs::LogGroup
@@ -70,8 +74,7 @@ Resources:
       - ServiceDiscovery
     Properties:
       ServiceName: !Sub ${ApplicationName}-${Environment}-service
-      Cluster: 
-        Fn::ImportValue: !Sub canvas-coap-proxy-${Environment}-ClusterArn
+      Cluster: !Ref ClusterArn
       # DeploymentConfiguration:
       DesiredCount: 0
       LaunchType: FARGATE
@@ -81,7 +84,7 @@ Resources:
           SecurityGroups:
             - !Ref SecurityGroup
           Subnets:
-            - Fn::ImportValue: !Sub canvas-coap-proxy-${Environment}-PrivateSubnet1
+            - !Ref Subnet
 
       TaskDefinition: !Ref Task
       ServiceConnectConfiguration:
@@ -98,8 +101,7 @@ Resources:
     Properties: 
       Description: Service Discovery Namespace
       Name: http-proxy
-      Vpc:
-        Fn::ImportValue: !Sub canvas-coap-proxy-${Environment}-VpcId
+      Vpc: !Ref ClusterVpcId
 
   Task:
     Type: AWS::ECS::TaskDefinition
