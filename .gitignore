@@ -88,3 +88,5 @@ typings/
 .dynamodb/
 
 layers/aws-sdk-v3/nodejs.zip
+
+*.pem

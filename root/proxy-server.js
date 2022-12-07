@@ -1,4 +1,3 @@
-const path = require("path");
 const fastify = require("fastify")({
   logger: true,
   ignoreTrailingSlash: true,
@@ -8,14 +7,14 @@ const { IoTDataPlaneClient, PublishCommand } = require("@aws-sdk/client-iot-data
 
 const client = new IoTDataPlaneClient();
 
-fastify.register(require("@fastify/cors"), {
-  origin: "*",
-  methods: "POST,OPTIONS",
-});
+// fastify.register(require("@fastify/cors"), {
+//   origin: "*",
+//   methods: "POST,OPTIONS",
+// });
 
-fastify.register(require('@fastify/static'), {
-  root: path.join(__dirname, 'static'),
-});
+// fastify.register(require('@fastify/static'), {
+//   root: path.join(__dirname, 'static'),
+// });
 
 fastify.addContentTypeParser(
   "application/octet-stream",

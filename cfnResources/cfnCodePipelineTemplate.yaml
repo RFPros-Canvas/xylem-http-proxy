@@ -135,7 +135,7 @@ Resources:
                 Provider: ECS
               Configuration:
                 ClusterName: !Ref ClusterName
-                ServiceName: !Sub ${ApplicationName}-${Environment}-ServiceName
+                ServiceName: !Sub ${ApplicationName}-${Environment}-service
                 FileName: "imagedefinitions.json"
               RunOrder: 2
 
