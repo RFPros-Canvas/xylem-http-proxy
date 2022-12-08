@@ -127,6 +127,7 @@ Resources:
               HostPort: 8080
               Protocol: tcp
               Name: service-port
+              AppProtocol: http
           LogConfiguration:
             LogDriver: awslogs
             Options:

@@ -43,7 +43,6 @@ fastify.post("/data", function (request, reply) {
 });
 
 fastify.get("/health", function (request, reply) {
-  logger.debug("GET healthcheck");
   reply.send({ status: "OK" });
 });
 
