@@ -25,7 +25,6 @@ fastify.addContentTypeParser(
 );
 
 fastify.post("/data", function (request, reply) {
-  logger.debug("POST data");
   console.log(request);
 
   // check ip against allowlist
