@@ -27,7 +27,6 @@ fastify.addContentTypeParser(
 fastify.post("/data", function (request, reply) {
   console.log(request);
 
-  // check ip against allowlist
   const command = new PublishCommand({
     topic: '/test',
     payload: request.body,
@@ -35,6 +34,54 @@ fastify.post("/data", function (request, reply) {
 
   client.publish(command).then((result) => {
     reply.send({ status: "OK" });
+  })
+  .catch((error) => {
+    reply.status(500).send({ error: error.message });
+  });
+});
+
+fastify.post("/data/:imei", function (request, reply) {
+  console.log(request);
+
+  const command = new PublishCommand({
+    topic: `/optimyze/gateway/laird/${request.params.imei}`,
+    payload: request.body,
+  });
+
+  client.publish(command).then((result) => {
+    reply.status(200);
+  })
+  .catch((error) => {
+    reply.status(500).send({ error: error.message });
+  });
+});
+
+fastify.get("/gettime/:imei", function (request, reply) {
+  console.log(request);
+
+  const command = new PublishCommand({
+    topic: `/optimyze/gateway/laird/${request.params.imei}/gettime`,
+    payload: request.body,
+  });
+
+  client.publish(command).then((result) => {
+    reply.send({ time: Date.now() });
+  })
+  .catch((error) => {
+    reply.status(500).send({ error: error.message });
+  });
+});
+
+fastify.get("/shadow/:imei", function (request, reply) {
+  console.log(request);
+
+  const command = new PublishCommand({
+    topic: '/test',
+    payload: request.body,
+  });
+
+  client.publish(command).then((result) => {
+    reply.status(200);
   })
   .catch((error) => {
     reply.status(500).send({ error: error.message });
