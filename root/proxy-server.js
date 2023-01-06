@@ -32,7 +32,7 @@ fastify.post("/data", function (request, reply) {
     payload: request.body,
   });
 
-  client.publish(command).then((result) => {
+  client.send(command).then((result) => {
     reply.send({ status: "OK" });
   })
   .catch((error) => {
@@ -48,7 +48,7 @@ fastify.post("/data/:imei", function (request, reply) {
     payload: request.body,
   });
 
-  client.publish(command).then((result) => {
+  client.send(command).then((result) => {
     reply.status(200);
   })
   .catch((error) => {
@@ -64,7 +64,7 @@ fastify.get("/gettime/:imei", function (request, reply) {
     payload: request.body,
   });
 
-  client.publish(command).then((result) => {
+  client.send(command).then((result) => {
     reply.send({ time: Date.now() });
   })
   .catch((error) => {
@@ -80,7 +80,7 @@ fastify.get("/shadow/:imei", function (request, reply) {
     payload: request.body,
   });
 
-  client.publish(command).then((result) => {
+  client.send(command).then((result) => {
     reply.status(200);
   })
   .catch((error) => {
