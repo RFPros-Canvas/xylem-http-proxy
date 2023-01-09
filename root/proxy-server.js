@@ -84,9 +84,9 @@ fastify.post("/gettime/:imei", function (request, reply) {
   client.send(command).then((result) => {
     reply.header('Content-Type', 'application/json; charset=utf-8')
     if (Math.random() * 10 < 5) {
-      reply.send(`{ "timestamp": ${Date.now()}, "device": ${pl.device} }`);
+      reply.send(`{ "timestamp": ${Math.round(Date.now() / 1000)}, "device": ${pl.device} }`);
     } else {
-      reply.send(`{ "device": ${pl.device}, "timestamp": ${Date.now()} }`);
+      reply.send(`{ "device": ${pl.device}, "timestamp": ${Math.round(Date.now() / 1000)} }`);
     }
   })
   .catch((error) => {
