@@ -78,7 +78,7 @@ fastify.post("/gettime/:imei", function (request, reply) {
 
   const command = new PublishCommand({
     topic: `optimyze/gateway/laird/${request.params.imei}/gettime`,
-    payload: pl,
+    payload: JSON.stringify(pl),
   });
 
   client.send(command).then((result) => {
@@ -108,7 +108,7 @@ fastify.post("/shadow/:imei", function (request, reply) {
 
   const command = new PublishCommand({
     topic: `$aws/things/deviceId-${request.params.imei}/shadow/update`,
-    payload: pl,
+    payload: JSON.stringify(pl),
   });
 
   client.send(command).then((result) => {
