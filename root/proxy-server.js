@@ -25,7 +25,7 @@ fastify.addContentTypeParser(
 );
 
 fastify.post("/data", function (request, reply) {
-  console.log(request);
+  console.log(request.body);
 
   const command = new PublishCommand({
     topic: '/test',
@@ -41,7 +41,7 @@ fastify.post("/data", function (request, reply) {
 });
 
 fastify.post("/data/:imei", function (request, reply) {
-  console.log(request);
+  console.log(request.body, request.params);
 
   const command = new PublishCommand({
     topic: `/optimyze/gateway/laird/${request.params.imei}`,
@@ -57,23 +57,23 @@ fastify.post("/data/:imei", function (request, reply) {
 });
 
 fastify.get("/gettime/:imei", function (request, reply) {
-  console.log(request);
+  console.log(request.body, request.params);
 
   const command = new PublishCommand({
     topic: `/optimyze/gateway/laird/${request.params.imei}/gettime`,
     payload: request.body,
   });
-
+  
   client.send(command).then((result) => {
-    reply.send({ time: Date.now() });
+    reply.send({ timestamp: Date.now(), device: parseInt(request.params.imei, 10) });
   })
   .catch((error) => {
     reply.status(500).send({ error: error.message });
   });
 });
 
-fastify.get("/shadow/:imei", function (request, reply) {
-  console.log(request);
+fastify.post("/shadow/:imei", function (request, reply) {
+  console.log(request.body, request.params);
 
   const command = new PublishCommand({
     topic: '/test',
