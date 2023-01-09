@@ -47,11 +47,11 @@ fastify.post("/data", function (request, reply) {
   });
 });
 
-fastify.post("/data/:sensorId", function (request, reply) {
+fastify.post("/data/:imei", function (request, reply) {
   console.log(request.body, request.params);
 
   const command = new PublishCommand({
-    topic: `/optimyze/gateway/laird/${request.params.sensorId}`,
+    topic: `optimyze/gateway/laird/${request.params.imei}`,
     payload: request.body,
   });
 
@@ -65,7 +65,7 @@ fastify.post("/data/:sensorId", function (request, reply) {
   });
 });
 
-fastify.post("/gettime/:sensorId", function (request, reply) {
+fastify.post("/gettime/:imei", function (request, reply) {
   console.log(request.body, request.params);
 
   let pl;
@@ -77,12 +77,17 @@ fastify.post("/gettime/:sensorId", function (request, reply) {
   }
 
   const command = new PublishCommand({
-    topic: `/optimyze/gateway/laird/${request.params.sensorId}/gettime`,
-    payload: request.body,
+    topic: `optimyze/gateway/laird/${request.params.imei}/gettime`,
+    payload: pl,
   });
 
   client.send(command).then((result) => {
-    reply.send({ timestamp: Date.now(), device: pl.device });
+    reply.header('Content-Type', 'application/json; charset=utf-8')
+    if (Math.random() * 10 < 5) {
+      reply.send(`{ "timestamp": ${Date.now()}, "device": ${pl.device} }`);
+    } else {
+      reply.send(`{ "device": ${pl.device}, "timestamp": ${Date.now()} }`);
+    }
   })
   .catch((error) => {
     console.log(error);
@@ -90,12 +95,20 @@ fastify.post("/gettime/:sensorId", function (request, reply) {
   });
 });
 
-fastify.post("/shadow/:sensorId", function (request, reply) {
+fastify.post("/shadow/:imei", function (request, reply) {
   console.log(request.body, request.params);
 
+  let pl;
+  try {
+    console.log(request.body.toString('ascii'))
+    pl = JSON.parse(request.body.toString('ascii'));
+  } catch (error) {
+    return reply.status(500).send({ error: error.message });
+  }
+
   const command = new PublishCommand({
-    topic: '/test',
-    payload: request.body,
+    topic: `$aws/things/deviceId-${request.params.imei}/shadow/update`,
+    payload: pl,
   });
 
   client.send(command).then((result) => {
