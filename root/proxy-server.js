@@ -20,7 +20,14 @@ fastify.addContentTypeParser(
   "application/octet-stream",
   function (request, payload, done) {
     // payload is a stream, just pass it along as the request body
-    done(null, payload);
+    let payloadArray = [];
+    payload.on("data", (data) => {
+      payloadArray.push(data);
+    })
+    payload.on("end", () => {
+      console.log('on end', payloadArray);
+      done(null, Buffer.from(payloadArray));
+    })
   }
 );
 
@@ -40,16 +47,18 @@ fastify.post("/data", function (request, reply) {
   });
 });
 
-fastify.post("/data/:imei", function (request, reply) {
+fastify.post("/data/:sensorId", function (request, reply) {
   console.log(request.body, request.params);
 
   const command = new PublishCommand({
-    topic: `/optimyze/gateway/laird/${request.params.imei}`,
+    topic: `/optimyze/gateway/laird/${request.params.sensorId}`,
     payload: request.body,
   });
 
+  console.log('sending data');
   client.send(command).then((result) => {
-    reply.status(200);
+    console.log(result);
+    reply.send();
   })
   .catch((error) => {
     console.log(error);
@@ -57,16 +66,16 @@ fastify.post("/data/:imei", function (request, reply) {
   });
 });
 
-fastify.get("/gettime/:imei", function (request, reply) {
+fastify.post("/gettime/:sensorId", function (request, reply) {
   console.log(request.body, request.params);
 
   const command = new PublishCommand({
-    topic: `/optimyze/gateway/laird/${request.params.imei}/gettime`,
+    topic: `/optimyze/gateway/laird/${request.params.sensorId}/gettime`,
     payload: request.body,
   });
 
   client.send(command).then((result) => {
-    reply.send({ timestamp: Date.now(), device: parseInt(request.params.imei, 10) });
+    reply.send({ timestamp: Date.now(), device: request.body.device });
   })
   .catch((error) => {
     console.log(error);
@@ -74,7 +83,7 @@ fastify.get("/gettime/:imei", function (request, reply) {
   });
 });
 
-fastify.post("/shadow/:imei", function (request, reply) {
+fastify.post("/shadow/:sensorId", function (request, reply) {
   console.log(request.body, request.params);
 
   const command = new PublishCommand({
@@ -83,7 +92,7 @@ fastify.post("/shadow/:imei", function (request, reply) {
   });
 
   client.send(command).then((result) => {
-    reply.status(200);
+    reply.send();
   })
   .catch((error) => {
     console.log(error);
@@ -97,7 +106,7 @@ fastify.get("/health", function (request, reply) {
 
 // load params from param store
 
-fastify.listen({ port: 8080, host: "0.0.0.0" }, function (err, address) {
+fastify.listen({ port: 8080, host: 'localhost' }, function (err, address) {
   if (err) {
     fastify.log.error(err);
     process.exit(1);
