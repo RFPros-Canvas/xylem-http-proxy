@@ -26,7 +26,7 @@ fastify.addContentTypeParser(
     })
     payload.on("end", () => {
       console.log('on end', payloadArray);
-      done(null, Buffer.from(payloadArray));
+      done(null, Buffer.concat(payloadArray));
     })
   }
 );
@@ -55,7 +55,6 @@ fastify.post("/data/:sensorId", function (request, reply) {
     payload: request.body,
   });
 
-  console.log('sending data');
   client.send(command).then((result) => {
     console.log(result);
     reply.send();
@@ -69,13 +68,21 @@ fastify.post("/data/:sensorId", function (request, reply) {
 fastify.post("/gettime/:sensorId", function (request, reply) {
   console.log(request.body, request.params);
 
+  let pl;
+  try {
+    console.log(request.body.toString('ascii'))
+    pl = JSON.parse(request.body.toString('ascii'));
+  } catch (error) {
+    return reply.status(500).send({ error: error.message });
+  }
+
   const command = new PublishCommand({
     topic: `/optimyze/gateway/laird/${request.params.sensorId}/gettime`,
     payload: request.body,
   });
 
   client.send(command).then((result) => {
-    reply.send({ timestamp: Date.now(), device: request.body.device });
+    reply.send({ timestamp: Date.now(), device: pl.device });
   })
   .catch((error) => {
     console.log(error);
