@@ -52,6 +52,7 @@ fastify.post("/data/:imei", function (request, reply) {
     reply.status(200);
   })
   .catch((error) => {
+    console.log(error);
     reply.status(500).send({ error: error.message });
   });
 });
@@ -63,11 +64,12 @@ fastify.get("/gettime/:imei", function (request, reply) {
     topic: `/optimyze/gateway/laird/${request.params.imei}/gettime`,
     payload: request.body,
   });
-  
+
   client.send(command).then((result) => {
     reply.send({ timestamp: Date.now(), device: parseInt(request.params.imei, 10) });
   })
   .catch((error) => {
+    console.log(error);
     reply.status(500).send({ error: error.message });
   });
 });
@@ -84,6 +86,7 @@ fastify.post("/shadow/:imei", function (request, reply) {
     reply.status(200);
   })
   .catch((error) => {
+    console.log(error);
     reply.status(500).send({ error: error.message });
   });
 });
