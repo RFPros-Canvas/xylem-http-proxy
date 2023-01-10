@@ -14,3 +14,19 @@ service.http-proxy
 ### Manually Deploy Container after changes
 - Codepipeline deployment step creates a new revision, but drops the service connect portmapping name. I think this is a bug in AWS.
 - The coap proxy service needs to have service discovery enabled, client-server mode using the namespace created by the HTTP proxy
+
+
+publish optimyze/gateway/laird/{imei}/gettime
+```
+{
+  "device": "sensorid"
+}
+```
+
+subscribe optimyze/gateway/laird/{imei}/gettimersp
+```
+{
+  "device": "sensorid",
+  "timestamp": 1673295694435
+}
+```
